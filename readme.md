@@ -17,12 +17,12 @@ This project provides a comprehensive browser fingerprinting tool that generates
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/advanced-browser-fingerprinting-tool.git
+   git clone https://github.com/pim97/fingerprint-technique.git
    ```
 
 2. Navigate to the project directory:
    ```
-   cd advanced-browser-fingerprinting-tool
+   cd fingerprint-technique
    ```
 
 3. Open the `index.html` file in a web browser or serve it using a local server.
