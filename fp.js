@@ -117,7 +117,7 @@
                     if (ice && ice.candidate && ice.candidate.candidate) {
                         const localIP = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
                         resolve(localIP);
-                        pc.onicecandidate = () => {};
+                        pc.onicecandidate = () => { };
                         pc.close();
                     }
                 };
@@ -126,7 +126,7 @@
             }
         });
     }
-    
+
     // Battery status
     function getBatteryStatus() {
         return new Promise((resolve) => {
@@ -144,7 +144,7 @@
             }
         });
     }
-    
+
     // CPU benchmarking
     function performCPUBenchmark() {
         const start = performance.now();
@@ -155,7 +155,7 @@
         const end = performance.now();
         return end - start;
     }
-    
+
     // Pointer and input device detection
     function getInputDeviceInfo() {
         return {
@@ -165,7 +165,39 @@
             hoverSupport: window.matchMedia('(hover: hover)').matches,
         };
     }
-    
+
+    const isHeadless = (() => {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const oscpu = navigator.oscpu;
+        const platform = navigator.platform.toLowerCase();
+
+        if (
+            /headless/.test(userAgent) ||
+            navigator.webdriver ||
+            !window.chrome ||
+            !navigator.languages ||
+            navigator.languages.length === 0
+        ) {
+            return true;
+        }
+
+        // Additional checks for inconsistencies
+        if (platform.indexOf('win') === 0 && oscpu && oscpu.indexOf('Windows NT 10.0;') !== 0) {
+            return true;
+        }
+        if (platform.indexOf('linux') === 0 && oscpu && oscpu.indexOf('Linux') !== 0) {
+            return true;
+        }
+        if (
+            /android/.test(userAgent) &&
+            !('ontouchstart' in window || navigator.maxTouchPoints > 0)
+        ) {
+            return true;
+        }
+
+        return false;
+    })();
+
     // Browser automation detection
     function detectAutomation() {
         return {
@@ -173,10 +205,10 @@
             automationControlled: !!window.cdc_adoQpoasnfa76pfcZLmcfl_Array,
             puppeteer: !!window._phantom || !!window.callPhantom,
             selenium: !!window.__selenium_evaluate || !!document.__selenium_evaluate,
-            headless: !window.chrome || !window.chrome.app,
+            headless: isHeadless
         };
     }
-    
+
     // Enhanced screen properties
     function getEnhancedScreenProperties() {
         return {
@@ -186,7 +218,7 @@
             multiMonitor: window.screen.isExtended !== undefined ? window.screen.isExtended : 'unknown',
         };
     }
-    
+
     // Expanded storage detection
     function getStorageCapacities() {
         return new Promise(async (resolve) => {
@@ -195,13 +227,13 @@
                 sessionStorage: !!window.sessionStorage,
                 indexedDB: !!window.indexedDB,
             };
-    
+
             if (navigator.storage && navigator.storage.estimate) {
                 const { quota, usage } = await navigator.storage.estimate();
                 storage.quota = quota;
                 storage.usage = usage;
             }
-    
+
             resolve(storage);
         });
     }
@@ -222,17 +254,101 @@
     T.screen.enhanced = getEnhancedScreenProperties();
     T.browser.storage = await getStorageCapacities();
 
+    function detectBot(fingerprint) {
+        let botScore = 0;
+        const botIndicators = [];
+
+        // Check for common bot indicators
+        if (fingerprint.browser.automation.webdriver) {
+            botScore += 0.5;
+            botIndicators.push("Webdriver detected");
+        }
+        if (fingerprint.browser.automation.automationControlled) {
+            botScore += 0.5;
+            botIndicators.push("Automation controlled");
+        }
+        if (fingerprint.browser.automation.puppeteer) {
+            botScore += 0.5;
+            botIndicators.push("Puppeteer detected");
+        }
+        if (fingerprint.browser.automation.selenium) {
+            botScore += 0.5;
+            botIndicators.push("Selenium detected");
+        }
+
+        if (isHeadless) {
+            botScore += 0.3;
+            botIndicators.push("Headless browser detected");
+        }
+
+        // Check for suspicious hardware configurations
+        if (fingerprint.device.hardwareConcurrency === 1) {
+            botScore += 0.2;
+            botIndicators.push("Single core CPU");
+        }
+        if (fingerprint.device.deviceMemory < 2) {
+            botScore += 0.2;
+            botIndicators.push("Low device memory");
+        }
+
+        // Check for missing or suspicious features
+        if (!fingerprint.audioFingerprint) {
+            botScore += 0.2;
+            botIndicators.push("No audio fingerprint");
+        }
+        if (!fingerprint.canvasFingerprint) {
+            botScore += 0.2;
+            botIndicators.push("No canvas fingerprint");
+        }
+        if (!fingerprint.webgl) {
+            botScore += 0.2;
+            botIndicators.push("No WebGL support");
+        }
+
+        // Check for suspicious screen properties
+        if (fingerprint.screen.width < 800 || fingerprint.screen.height < 600) {
+            botScore += 0.2;
+            botIndicators.push("Unusual screen size");
+        }
+
+        // Check for suspicious timezone
+        if (fingerprint.timezone.offset === 0 && fingerprint.timezone.timezone === "UTC") {
+            botScore += 0.2;
+            botIndicators.push("UTC timezone");
+        }
+
+        // Check for lack of input devices
+        if (fingerprint.device.inputDevices.maxTouchPoints === 0 && !fingerprint.device.inputDevices.touchSupport) {
+            botScore += 0.1;
+            botIndicators.push("No touch support");
+        }
+
+        // Determine if it's likely a bot
+        const isLikelyBot = botScore >= 0.7;
+
+        return {
+            isLikelyBot,
+            botScore,
+            botIndicators
+        };
+    }
+
     // Generate fingerprint hash
     const fingerprintString = JSON.stringify(T);
     const fingerprintHash = await sha256(fingerprintString);
-    
+
+    // Perform bot detection
+    const botDetectionResult = detectBot(T);
 
     // Display the fingerprint and hash
     console.log("Fingerprint data:", JSON.stringify(T, null, 2));
     console.log("Fingerprint hash (SHA-256):", fingerprintHash);
 
+    // Bot detection result
+    console.log("Bot detection result:", JSON.stringify(botDetectionResult, null, 2));
+
     // Return the fingerprint object and hash for further use
-    return { fingerprint: T, hash: fingerprintHash };
+    return { fingerprint: T, hash: fingerprintHash, botDetection: botDetectionResult };
 })().then(result => {
     // You can access the result here if needed
     console.log("Fingerprinting complete. Access the result via the returned Promise.");

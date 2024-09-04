@@ -1,6 +1,6 @@
-# Advanced Browser Fingerprinting Tool
+# Advanced Browser Fingerprinting and Bot Detection Tool
 
-This project provides a comprehensive browser fingerprinting tool that generates a unique identifier for a user's browser without using any external libraries. It's designed for educational and research purposes, demonstrating various techniques used in browser fingerprinting.
+This project provides a comprehensive browser fingerprinting tool that generates a unique identifier for a user's browser and includes advanced bot detection capabilities. It's designed for educational and research purposes, demonstrating various techniques used in browser fingerprinting and bot detection.
 
 ## Features
 
@@ -10,6 +10,7 @@ This project provides a comprehensive browser fingerprinting tool that generates
 - Performs CPU benchmarking
 - Detects input devices and automation
 - Generates a SHA-256 hash as a unique identifier
+- Advanced bot detection algorithm
 - Works entirely client-side in the browser
 
 ## Installation
@@ -36,7 +37,7 @@ This project provides a comprehensive browser fingerprinting tool that generates
    <script src="fp.js"></script>
    ```
 
-2. The script will automatically run when the page loads, collecting fingerprint data and generating a unique identifier.
+2. The script will automatically run when the page loads, collecting fingerprint data, generating a unique identifier, and performing bot detection.
 
 ### Method 2: Browser Console Debugging
 
@@ -45,7 +46,7 @@ This project provides a comprehensive browser fingerprinting tool that generates
 3. Copy the entire content of `fp.js` and paste it into the console.
 4. Press Enter to execute the code.
 
-The fingerprint data and hash will be logged to the console for immediate viewing.
+The fingerprint data, hash, and bot detection results will be logged to the console for immediate viewing.
 
 ## Fingerprinting Techniques
 
@@ -68,13 +69,28 @@ This tool uses various techniques to create a unique browser fingerprint:
 - Enhanced screen properties
 - Expanded storage detection
 
+## Bot Detection
+
+The tool includes an advanced bot detection algorithm that analyzes the collected fingerprint data to determine the likelihood of the client being a bot. It checks for:
+
+- Presence of automation tools (WebDriver, Puppeteer, Selenium)
+- Headless browser indicators
+- Suspicious hardware configurations
+- Missing or unusual browser features
+- Inconsistent platform and OS information
+- Unusual screen properties
+- Suspicious timezone settings
+- Lack of expected input devices
+
+The bot detection provides a bot score and a list of detected indicators, allowing for flexible decision-making based on the specific use case.
+
 ## Customization
 
-You can modify the `fp.js` file to add or remove fingerprinting techniques as needed for your specific use case. The modular structure allows for easy addition of new fingerprinting methods.
+You can modify the `fp.js` file to add or remove fingerprinting techniques or adjust the bot detection algorithm as needed for your specific use case. The modular structure allows for easy addition of new fingerprinting methods and bot detection rules.
 
 ## Security and Privacy Considerations
 
-This tool is intended for educational and research purposes only. Be aware of legal and ethical considerations when implementing fingerprinting techniques in production environments. Always inform users about data collection and respect their privacy preferences.
+This tool is intended for educational and research purposes only. Be aware of legal and ethical considerations when implementing fingerprinting and bot detection techniques in production environments. Always inform users about data collection and respect their privacy preferences.
 
 ## Contributing
 
