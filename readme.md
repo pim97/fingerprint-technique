@@ -84,6 +84,25 @@ The tool includes an advanced bot detection algorithm that analyzes the collecte
 
 The bot detection provides a bot score and a list of detected indicators, allowing for flexible decision-making based on the specific use case.
 
+## Brotector-inspired Detections
+
+This fingerprinting script includes several detection methods inspired by Brotector:
+
+1. **Webdriver Detection**: Checks if `navigator.webdriver` is true, which can indicate automation.
+
+2. **CDC Properties**: Searches for window properties matching the pattern `cdc_[a-z0-9]`, which are often associated with Chrome DevTools Protocol.
+
+3. **Runtime Enabled and Debugger Detection**: 
+   - Counts stack lookups, which can be higher when a debugger is attached.
+   - Measures timing differences that may occur when a debugger is present.
+
+4. **High Entropy Values**: Attempts to retrieve high entropy values from the user agent, which can provide detailed system information.
+
+5. **Input Coordinate Leak Detection**: Checks for suspicious patterns in mouse event coordinates that might indicate automation.
+
+These detections contribute to a more comprehensive fingerprint and aid in identifying potential automated or headless browsers.
+
+
 ## Customization
 
 You can modify the `fp.js` file to add or remove fingerprinting techniques or adjust the bot detection algorithm as needed for your specific use case. The modular structure allows for easy addition of new fingerprinting methods and bot detection rules.
