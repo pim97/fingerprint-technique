@@ -1,6 +1,36 @@
 (async function debugFingerprinting() {
     const T = {};
 
+    const startTime = performance.now();
+
+    // Helper functions
+    function getDebuggerTiming() {
+        var start = performance.now();
+        // debugger;
+        return (performance.now() - start);
+    }
+
+    async function getHighEntropyValues() {
+        const n = navigator;
+        if (n.userAgentData && n.userAgentData.getHighEntropyValues) {
+            try {
+                const data = await n.userAgentData.getHighEntropyValues([
+                    "architecture",
+                    "bitness",
+                    "model",
+                    "platform",
+                    "platformVersion",
+                    "uaFullVersion"
+                ]);
+                data.userAgent = n.userAgent;
+                return data;
+            } catch (e) {
+                console.error("Error getting high entropy values:", e);
+            }
+        }
+        return null;
+    }
+
     // Screen properties
     T.screen = {
         width: screen.width,
@@ -34,6 +64,58 @@
         offset: new Date().getTimezoneOffset(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
+
+    // Brotector-inspired detections
+    T.brotector = {};
+
+    // Test navigator.webdriver
+    T.brotector.webdriver = navigator.webdriver === true;
+
+    // Test window.cdc properties
+    T.brotector.cdc = Object.keys(window).filter(prop => prop.match(/cdc_[a-z0-9]/ig));
+
+    // Test runtime.enabled and devtools
+    T.brotector.runtimeEnabled = (function() {
+        var stackLookupCount = 0;
+        const e = new Error();
+        Object.defineProperty(e, 'stack', {
+            configurable: false,
+            enumerable: false,
+            get: function() {
+                stackLookupCount += 1;
+                return "";
+            }
+        });
+        console.debug(e);
+
+        return {
+            stackLookupCount: stackLookupCount,
+            debuggerTiming: getDebuggerTiming()
+        };
+    })();
+
+
+    // Test HighEntropyValues
+    T.brotector.highEntropyValues = await getHighEntropyValues();
+
+    // Input coordinate leak detection
+    T.brotector.inputCoordinates = (function() {
+        let detected = false;
+        const handler = function(e) {
+            if (e.pageY == e.screenY && e.pageX == e.screenX && !(1 >= outerHeight - innerHeight)) {
+                detected = true;
+                document.removeEventListener('mousemove', handler);
+                document.removeEventListener('mousedown', handler);
+                document.removeEventListener('mouseup', handler);
+                document.removeEventListener('click', handler);
+            }
+        };
+        document.addEventListener('mousemove', handler);
+        document.addEventListener('mousedown', handler);
+        document.addEventListener('mouseup', handler);
+        document.addEventListener('click', handler);
+        return () => detected;
+    })();
 
     // Canvas fingerprinting
     function getCanvasFingerprint() {
@@ -321,6 +403,45 @@
         if (fingerprint.device.inputDevices.maxTouchPoints === 0 && !fingerprint.device.inputDevices.touchSupport) {
             botScore += 0.1;
             botIndicators.push("No touch support");
+        }
+
+        if (fingerprint.brotector.webdriver) {
+            botScore += 0.5;
+            botIndicators.push("Webdriver detected");
+        }
+
+        if (fingerprint.brotector.cdc.length > 0) {
+            botScore += 0.5;
+            botIndicators.push("Automation-related window properties detected");
+        }
+
+        if (fingerprint.brotector.runtimeEnabled.stackLookupCount > 1 || fingerprint.brotector.runtimeEnabled.debuggerTiming > 5) {
+            botScore += 0.3;
+            botIndicators.push("Possible debugger detected");
+        }
+
+        if (fingerprint.brotector.highEntropyValues && 
+            fingerprint.brotector.highEntropyValues.architecture === "" &&
+            fingerprint.brotector.highEntropyValues.model === "" && 
+            fingerprint.brotector.highEntropyValues.platformVersion === "" &&
+            fingerprint.brotector.highEntropyValues.uaFullVersion === "") {
+            botScore += 0.4;
+            botIndicators.push("Suspicious high entropy values");
+        }
+
+        if (fingerprint.brotector.inputCoordinates()) {
+            botScore += 0.3;
+            botIndicators.push("Suspicious input coordinates");
+        }
+
+        if (fingerprint.hardwareConcurrency === 1) {
+            botScore += 0.2;
+            botIndicators.push("Single core CPU");
+        }
+
+        if (fingerprint.deviceMemory < 2) {
+            botScore += 0.2;
+            botIndicators.push("Low device memory");
         }
 
         // Determine if it's likely a bot
